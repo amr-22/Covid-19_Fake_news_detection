@@ -1,6 +1,7 @@
 import re
 import requests
 from tqdm import tqdm
+import pandas as pd
 
 
 
@@ -67,7 +68,63 @@ def count_of_text(text,dataset):
             
     return count
 
+def find_url(text):
+    url = re.findall('https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+/.*', text)
+    return url
+    
 
+def urls_in_dateset(dataset):
+    long_urls_link=[]
+    count=0
+    for line in dataset["tweet"]:
+                count+=1
+                urls = find_url(line)
+                for url in urls:
+                        x = requests.get(url)
+                        long_urls_link.append(x.url)
+    return long_urls_link
+
+
+def hashtag_list(dataset):
+    hashtag_list=[]
+
+    for line in dataset["tweet"]:
+        hashtags=re.findall(r'\B#\w*[a-zA-Z]+\w*',line)
+        for hashtag in hashtags:
+            hashtag_list.append(hashtag)
+    
+    hashtag_list=[*set(hashtag_list)]
+    return hashtag_list
+
+
+
+
+from selenium import webdriver
+from selenium.webdriver import *
+from selenium.webdriver.common.by import By
+#get twitter content and user name
+
+def twitter_get_data(url):
+    browser = webdriver.Chrome()
+    browser.get(url)
+    twit_name=browser.find_element(By.XPATH,'/html/body/div[1]/div/div/div[2]/main/div/div/div/div/div/section/div/div/div[1]/div/div/div/article/div/div/div/div[2]/div[2]/div/div/div/div[1]/div/div/div[2]/div/div/a').text
+    twit_content = browser.find_element(By.XPATH,'/html/body/div[1]/div/div/div[2]/main/div/div/div/div/div/section/div/div/div[1]/div/div/div/article/div/div/div/div[3]/div[2]/div/div/span').text
+    check_twitter_usenme("twit_name")
+    # chec twitter user name from collected lists 
+
+twitter_fake_list=['@NewscheckerIn']
+twitter_real_list=['@MOHFW_INDIA','@SkyNews','@WHO']
+
+def check_twitter_usenme(twit_name):
+        if twit_name in twitter_fake_list:
+            result = 'fake'
+            return (result)
+        elif twit_name in twitter_real_list:
+            result='real'
+            return (result)
+        else:
+            result='null'
+            return (result)
 
 
 
