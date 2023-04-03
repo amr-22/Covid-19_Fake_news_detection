@@ -128,6 +128,24 @@ def check_twitter_usenme(twit_name):
 
 
 
+########################################################
+#################    remove stopWords   ################
+########################################################
+import spacy    
+nlp = spacy.load('en_core_web_sm', parser=False, entity=False)   
+filtered_sentence=[]
+def remove_stop_wordds(text):
+    customize_stop_words = [    ]
+    customize_not_stop_words = [    ]
+    for w in customize_stop_words:
+        nlp.Defaults.stop_words.add(w)
+        nlp.vocab[w].is_stop = True    
+    for w in customize_stop_words:
+        nlp.Defaults.stop_words.remove(w)
+        customize_not_stop_words = False
+    for w in text:
+        if w.is_stop == False:
+            filtered_sentence.append(w)
 
 
 
