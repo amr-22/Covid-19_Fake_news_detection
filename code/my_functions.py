@@ -2,6 +2,12 @@ import re
 import requests
 from tqdm import tqdm
 import pandas as pd
+import numpy as np
+from nltk import tokenize, word_tokenize
+from nltk.tokenize import word_tokenize, sent_tokenize
+import nltk 
+
+from bs4 import BeautifulSoup
 
 
 
@@ -41,6 +47,15 @@ def remove_emoji(text):
     return text
 
 def remove_useless_tokens(text):
+    '''
+    removing all off next parts in one time
+     - remove_urls
+     - extract_hashtag
+     - extract_mention
+     - remove_emoji
+     - remove_symbols
+     - remove_space
+    '''
     text=remove_urls(text)
     text=extract_hashtag(text)
     text=extract_mention(text)
@@ -69,20 +84,34 @@ def count_of_text(text,dataset):
     return count
 
 def find_url(text):
-    url = re.findall('https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+/.*', text)
+    # url = re.findall('https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+/.*', text)
+    url = re.findall(r'(https|http)?:\/\/(\w|\.|\/|\?|\=|\&|\%)*\b', text)
     return url
     
+    
+from urlextract import URLExtract
 
 def urls_in_dateset(dataset):
     long_urls_link=[]
     count=0
+    extractor = URLExtract()
     for line in dataset["tweet"]:
                 count+=1
                 urls = find_url(line)
+                urls = extractor.find_urls(urls)
+                print("------> " + urls)
                 for url in urls:
-                        x = requests.get(url)
-                        long_urls_link.append(x.url)
+                    
+                        print("______________________________")
+                        # url = extractor.find_urls(line)
+                        url = re.sub("[.$]","",url)
+                        # x = requests.get(url)
+                        long_urls_link.append(url)
     return long_urls_link
+
+
+
+
 
 
 def hashtag_list(dataset):
@@ -132,7 +161,7 @@ def check_twitter_usenme(twit_name):
 #################    remove stopWords   ################
 ########################################################
 import spacy    
-nlp = spacy.load('en_core_web_sm', parser=False, entity=False)   
+nlp = spacy.load('en_core_web_sm')   
 filtered_sentence=[]
 def remove_stop_wordds(text):
     customize_stop_words = [    ]
@@ -150,6 +179,60 @@ def remove_stop_wordds(text):
 
 
 
+########################################################
+#################    find similarity    ################
+########################################################
+
+def sim_values_between_token_and_sites(url,tweet):
+    '''
+      this function to find similarity between tokens of data in site and tokens of tweet
+      ---------------------------------------
+       return:-
+       - sumValues
+       - count 
+    '''
+    # work with url
+    request=requests.get(url)
+    soup = BeautifulSoup(request.text, "html.parser")
+    text1=soup.body.get_text()
+    words = word_tokenize(text1)
+    stopwords = nltk.corpus.stopwords.words('english')
+    
+    siteFreqTable = dict()
+    for word in words:
+        word = word.lower()
+        if word in stopwords:
+            continue
+        if word in siteFreqTable:
+            siteFreqTable[word] += 1
+        else:
+            siteFreqTable[word] = 1
+            
+         
+    # work with tweet
+       
+    tweet_tokenized= word_tokenize(tweet)  
+    tweetFreqTable = dict()
+    for word in tweet_tokenized:
+        word = word.lower()
+        if word in stopwords:
+            continue
+        if word in tweetFreqTable:
+            tweetFreqTable[word] += 1
+        else:
+            tweetFreqTable[word] = 1
+            
+    # calculations
+
+    sumValues=0
+    count=0
+
+    for token in tweetFreqTable:
+        if token in siteFreqTable:
+            count+=1
+            sumValues+=siteFreqTable[token]/len(siteFreqTable)
+    
+    return sumValues,count
 
 
 
