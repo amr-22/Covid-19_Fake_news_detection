@@ -68,7 +68,10 @@ def remove_useless_tokens(text):
 
 def url_short_to_long(url_text):
     """ -- convert short url to long url """
-    site = requests.get(url_text)
+    headers = {
+     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36',
+    }
+    site = requests.get(url_text,headers=headers)
     return site.url
 
 
@@ -236,8 +239,48 @@ def sim_values_between_token_and_sites(url,tweet):
 
 
 
+################################################## new #########################################################
+########################################################
+##############   model for similarity   ################
+########################################################
+###pip install sentence_transformers
+from sentence_transformers import SentenceTransformer, util
+model = SentenceTransformer('all-MiniLM-L6-v2')
+# Two lists of sentences
+sentences1 = [tweet]
+sentences2 = [doc_data]
+#Compute embedding for both lists
+embeddings1 = model.encode(sentences1, convert_to_tensor=True)
+embeddings2 = model.encode(sentences2, convert_to_tensor=True)
+#Compute cosine-similarities
+cosine_scores = util.cos_sim(embeddings1, embeddings2)
+#Output the pairs with their score
+for i in range(len(sentences1)):
+   print( cosine_scores[i][i])
 
+########################
+########################################################
+#################    find similarity    ################
+########################################################
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
+# Example document and query
+document =doc_data
+query = tweet
+
+# Preprocess the text
+document = document.lower()
+query = query.lower()
+
+# Convert text to numerical vectors using bag-of-words model
+vectorizer = CountVectorizer().fit_transform([document, query])
+document_vector, query_vector = vectorizer.toarray()
+
+# Calculate cosine similarity
+similarity = cosine_similarity([document_vector], [query_vector])
+print(similarity[0][0])  # prints the cosine similarity score
+##################################################################################################################
 
 
 
