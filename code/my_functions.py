@@ -1,14 +1,13 @@
 import re
-import requests
-from tqdm import tqdm
-import pandas as pd
+
+import nltk
 import numpy as np
-from nltk import tokenize, word_tokenize
-from nltk.tokenize import word_tokenize, sent_tokenize
-import nltk 
-
+import pandas as pd
+import requests
 from bs4 import BeautifulSoup
-
+from nltk import tokenize, word_tokenize
+from nltk.tokenize import sent_tokenize, word_tokenize
+from tqdm import tqdm
 
 
 # function for remove url
@@ -94,6 +93,7 @@ def find_url(text):
     
 from urlextract import URLExtract
 
+
 def urls_in_dateset(dataset):
     long_urls_link=[]
     count=0
@@ -134,6 +134,7 @@ def hashtag_list(dataset):
 from selenium import webdriver
 from selenium.webdriver import *
 from selenium.webdriver.common.by import By
+
 #get twitter content and user name
 
 def twitter_get_data(url):
@@ -163,7 +164,8 @@ def check_twitter_usenme(twit_name):
 ########################################################
 #################    remove stopWords   ################
 ########################################################
-import spacy    
+import spacy
+
 nlp = spacy.load('en_core_web_sm')   
 filtered_sentence=[]
 def remove_stop_wordds(text):
@@ -245,10 +247,11 @@ def sim_values_between_token_and_sites(url,tweet):
 ########################################################
 ###pip install sentence_transformers
 from sentence_transformers import SentenceTransformer, util
+
 model = SentenceTransformer('all-MiniLM-L6-v2')
 # Two lists of sentences
-sentences1 = [tweet]
-sentences2 = [doc_data]
+sentences1 = ["tweet"]
+sentences2 = ["doc_data"]
 #Compute embedding for both lists
 embeddings1 = model.encode(sentences1, convert_to_tensor=True)
 embeddings2 = model.encode(sentences2, convert_to_tensor=True)
@@ -266,8 +269,8 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 # Example document and query
-document =doc_data
-query = tweet
+document ="doc_data"
+query = "tweet"
 
 # Preprocess the text
 document = document.lower()
