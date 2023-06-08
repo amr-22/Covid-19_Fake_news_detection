@@ -87,9 +87,12 @@ def count_of_text(text,dataset):
 
 def find_url(text):
     # url = re.findall('https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+/.*', text)
-    url = re.findall(r'(https|http)?:\/\/(\w|\.|\/|\?|\=|\&|\%)*\b', text)
+    # url = re.findall(r'(https|http)?:\/\/(\w|\.|\/|\?|\=|\&|\%)*\b', text)
+    url = re.findall(r'\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:\'".,<>?«»“”‘’]))', text)
     return url
     
+
+
     
 from urlextract import URLExtract
 
@@ -133,17 +136,21 @@ def hashtag_list(dataset):
 
 from selenium import webdriver
 from selenium.webdriver import *
+# from selenium.webdriver.chrome.options import Options as ChromeOptions
+from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
 
 #get twitter content and user name
 
 def twitter_get_data(url):
-    browser = webdriver.Chrome()
+    browser = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()))
     browser.get(url)
-    twit_name=browser.find_element(By.XPATH,'/html/body/div[1]/div/div/div[2]/main/div/div/div/div/div/section/div/div/div[1]/div/div/div/article/div/div/div/div[2]/div[2]/div/div/div/div[1]/div/div/div[2]/div/div/a').text
+    # twit_name=browser.find_element(By.XPATH,'/html/body/div[1]/div/div/div[2]/main/div/div/div/div/div/section/div/div/div[1]/div/div/div/article/div/div/div/div[2]/div[2]/div/div/div/div[1]/div/div/div[2]/div/div/a').text
     twit_content = browser.find_element(By.XPATH,'/html/body/div[1]/div/div/div[2]/main/div/div/div/div/div/section/div/div/div[1]/div/div/div/article/div/div/div/div[3]/div[2]/div/div/span').text
-    check_twitter_usenme("twit_name")
+    # check_twitter_usenme("twit_name")
     # chec twitter user name from collected lists 
+    return twit_content
 
 twitter_fake_list=['@NewscheckerIn']
 twitter_real_list=['@MOHFW_INDIA','@SkyNews','@WHO']
@@ -184,129 +191,210 @@ def remove_stop_wordds(text):
 
 
 
-########################################################
-#################    find similarity    ################
-########################################################
-
-def sim_values_between_token_and_sites(url,tweet):
-    '''
-      this function to find similarity between tokens of data in site and tokens of tweet
-      ---------------------------------------
-       return:-
-       - sumValues
-       - count 
-    '''
-    # work with url
-    request=requests.get(url)
-    soup = BeautifulSoup(request.text, "html.parser")
-    text1=soup.body.get_text()
-    words = word_tokenize(text1)
-    stopwords = nltk.corpus.stopwords.words('english')
-    
-    siteFreqTable = dict()
-    for word in words:
-        word = word.lower()
-        if word in stopwords:
-            continue
-        if word in siteFreqTable:
-            siteFreqTable[word] += 1
-        else:
-            siteFreqTable[word] = 1
-            
-         
-    # work with tweet
-       
-    tweet_tokenized= word_tokenize(tweet)  
-    tweetFreqTable = dict()
-    for word in tweet_tokenized:
-        word = word.lower()
-        if word in stopwords:
-            continue
-        if word in tweetFreqTable:
-            tweetFreqTable[word] += 1
-        else:
-            tweetFreqTable[word] = 1
-            
-    # calculations
-
-    sumValues=0
-    count=0
-
-    for token in tweetFreqTable:
-        if token in siteFreqTable:
-            count+=1
-            sumValues+=siteFreqTable[token]/len(siteFreqTable)
-    
-    return sumValues,count
 
 
 
-################################################## new #########################################################
-########################################################
-##############   model for similarity   ################
-########################################################
-###pip install sentence_transformers
-from sentence_transformers import SentenceTransformer, util
-
-model = SentenceTransformer('all-MiniLM-L6-v2')
-# Two lists of sentences
-sentences1 = ["tweet"]
-sentences2 = ["doc_data"]
-#Compute embedding for both lists
-embeddings1 = model.encode(sentences1, convert_to_tensor=True)
-embeddings2 = model.encode(sentences2, convert_to_tensor=True)
-#Compute cosine-similarities
-cosine_scores = util.cos_sim(embeddings1, embeddings2)
-#Output the pairs with their score
-for i in range(len(sentences1)):
-   print( cosine_scores[i][i])
-
-########################
-########################################################
-#################    find similarity    ################
-########################################################
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-# Example document and query
-document ="doc_data"
-query = "tweet"
 
-# Preprocess the text
-document = document.lower()
-query = query.lower()
+def sim_values_twitter_v1(url,tweet):
+    ###### Two lists of sentences
+    ### url data
+    request=requests.get(url)
 
-# Convert text to numerical vectors using bag-of-words model
-vectorizer = CountVectorizer().fit_transform([document, query])
-document_vector, query_vector = vectorizer.toarray()
+    document = twitter_get_data(url)
+    ### tweet data
+    query = tweet
+    document = document.lower()
+    query = query.lower()
 
-# Calculate cosine similarity
-similarity = cosine_similarity([document_vector], [query_vector])
-print(similarity[0][0])  # prints the cosine similarity score
-##################################################################################################################
+    # Convert text to numerical vectors using bag-of-words model
+    vectorizer = CountVectorizer().fit_transform([document, query])
+    document_vector, query_vector = vectorizer.toarray()
 
-
-
-
-
-
+    # Calculate cosine similarity
+    similarity = cosine_similarity([document_vector], [query_vector])
+    # print(similarity[0][0])  # prints the cosine similarity sco
+    return similarity[0][0]
 
 
 
+def sim_values_url_v1(url,tweet):
+    try:
+        ###### Two lists of sentences
+        ### url data
+        request=requests.get(url)
+        # request=requests.get(url1_list[20])
+        soup = BeautifulSoup(request.text, "html.parser")
+        text1=soup.body.get_text()
+        document = text1
+        ### tweet data
+        # sentences1 = cleaned['tweet'][20]
+        query = tweet
+        document = document.lower()
+        query = query.lower()
+
+        # Convert text to numerical vectors using bag-of-words model
+        vectorizer = CountVectorizer().fit_transform([document, query])
+        document_vector, query_vector = vectorizer.toarray()
+
+        # Calculate cosine similarity
+        similarity = cosine_similarity([document_vector], [query_vector])
+        # print(similarity[0][0])  # prints the cosine similarity sco
+        return similarity[0][0]
+    except:
+        return 0.0
 
 
-# def count_of_text_in_real_&_fake(text):
+from sentence_transformers import SentenceTransformer, util
+
+
+def sim_values_url_v2(url,tweet):
+    model_sim = SentenceTransformer('all-MiniLM-L6-v2')
+    ###### Two lists of sentences
+    ### url data
+    request=requests.get(url)
+    # request=requests.get(url1_list[20])
+    soup = BeautifulSoup(request.text, "html.parser")
+    text1=soup.body.get_text()
+    sentences2 = text1
+    ### tweet data
+    # sentences1 = cleaned['tweet'][20]
+    sentences1 = tweet
+    ###### Compute embedding for both lists
+    embeddings1 = model_sim.encode(sentences1, convert_to_tensor=True)
+    embeddings2 = model_sim.encode(sentences2, convert_to_tensor=True)
+    ###### Compute cosine-similarities
+    cosine_scores = util.cos_sim(embeddings1, embeddings2)
+    ###### Output the pairs with their score
+    # print(cosine_scores[0][0])
+    return cosine_scores[0][0]
+
+##############################################################################################################
+# ########################################################
+# #################    find similarity    ################
+# ########################################################
+
+# def sim_values_between_token_and_sites(url,tweet):
+#     '''
+#       this function to find similarity between tokens of data in site and tokens of tweet
+#       ---------------------------------------
+#        return:-
+#        - sumValues
+#        - count 
+#     '''
+#     # work with url
+#     request=requests.get(url)
+#     soup = BeautifulSoup(request.text, "html.parser")
+#     text1=soup.body.get_text()
+#     words = word_tokenize(text1)
+#     stopwords = nltk.corpus.stopwords.words('english')
     
-#     real_count=0
-#     fake_count=0
-#     for x in tqdm(range(len(fake_data))):
-#         if text in fake_data.tweet[x]:
-#             fake_count+=1
+#     siteFreqTable = dict()
+#     for word in words:
+#         word = word.lower()
+#         if word in stopwords:
+#             continue
+#         if word in siteFreqTable:
+#             siteFreqTable[word] += 1
+#         else:
+#             siteFreqTable[word] = 1
             
-#     for x in tqdm(range(len(real_data))):
-#         if text in real_data.tweet[x]:
-#             real_count+=1
+         
+#     # work with tweet
+       
+#     tweet_tokenized= word_tokenize(tweet)  
+#     tweetFreqTable = dict()
+#     for word in tweet_tokenized:
+#         word = word.lower()
+#         if word in stopwords:
+#             continue
+#         if word in tweetFreqTable:
+#             tweetFreqTable[word] += 1
+#         else:
+#             tweetFreqTable[word] = 1
+            
+#     # calculations
+
+#     sumValues=0
+#     count=0
+
+#     for token in tweetFreqTable:
+#         if token in siteFreqTable:
+#             count+=1
+#             sumValues+=siteFreqTable[token]/len(siteFreqTable)
+    
+#     return sumValues,count
 
 
-#     print("count of "+ text+" in fake data ----> "+ str(fake_count))
-#     print("count of "+ text+" in fake data ----> "+str(real_count))
+
+# ################################################## new #########################################################
+# ########################################################
+# ##############   model for similarity   ################
+# ########################################################
+# ###pip install sentence_transformers
+# from sentence_transformers import SentenceTransformer, util
+
+# model = SentenceTransformer('all-MiniLM-L6-v2')
+# # Two lists of sentences
+# sentences1 = ["tweet"]
+# sentences2 = ["doc_data"]
+# #Compute embedding for both lists
+# embeddings1 = model.encode(sentences1, convert_to_tensor=True)
+# embeddings2 = model.encode(sentences2, convert_to_tensor=True)
+# #Compute cosine-similarities
+# cosine_scores = util.cos_sim(embeddings1, embeddings2)
+# #Output the pairs with their score
+# for i in range(len(sentences1)):
+#    print( cosine_scores[i][i])
+
+# ########################
+# ########################################################
+# #################    find similarity    ################
+# ########################################################
+# from sklearn.feature_extraction.text import CountVectorizer
+# from sklearn.metrics.pairwise import cosine_similarity
+
+# # Example document and query
+# document ="doc_data"
+# query = "tweet"
+
+# # Preprocess the text
+# document = document.lower()
+# query = query.lower()
+
+# # Convert text to numerical vectors using bag-of-words model
+# vectorizer = CountVectorizer().fit_transform([document, query])
+# document_vector, query_vector = vectorizer.toarray()
+
+# # Calculate cosine similarity
+# similarity = cosine_similarity([document_vector], [query_vector])
+# print(similarity[0][0])  # prints the cosine similarity score
+# ##################################################################################################################
+
+
+
+
+
+
+
+
+
+
+
+# # def count_of_text_in_real_&_fake(text):
+    
+# #     real_count=0
+# #     fake_count=0
+# #     for x in tqdm(range(len(fake_data))):
+# #         if text in fake_data.tweet[x]:
+# #             fake_count+=1
+            
+# #     for x in tqdm(range(len(real_data))):
+# #         if text in real_data.tweet[x]:
+# #             real_count+=1
+
+
+# #     print("count of "+ text+" in fake data ----> "+ str(fake_count))
+# #     print("count of "+ text+" in fake data ----> "+str(real_count))
